@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cluster Apache + Nginx LB</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #1a1a2e; color: #fff; margin: 0; padding: 20px; text-align: center; }
+        h1 { color: #e94560; }
+        p { font-size: 1.1rem; color: #e0e0e0; }
+        .grid { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 30px; }
+        img, video { max-width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: block; margin: 0 auto; }
+        .st-card { background: #16213e; padding: 20px; border-radius: 12px; max-width: 420px; width: 100%; border: 1px solid #0f3460; transition: transform 0.3s; }
+        .st-card:hover { transform: translateY(-5px); }
+        .st-card h3 { color: #0f3460; background: #fff; padding: 5px 10px; border-radius: 5px; font-weight: bold; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>¡Hola desde el Cluster de Apache!</h1>
+    <p>Esta página web está siendo servida a través de <strong>Nginx actuando como Reverse Proxy con Balanceador de Carga y Caché</strong>.</p>
+    <p>Puedes inspeccionar las cabeceras HTTP de respuesta: <code>X-Backend-Server</code> para ver qué Apache respondió y <code>X-Proxy-Cache</code> para ver si hizo HIT o MISS en la caché.</p>
+
+    <div class="grid">
+        <div class="st-card">
+            <h3>Imagen 1</h3>
+            <img src="images/img1.jpg" alt="Imagen de ejemplo 1">
+        </div>
+        <div class="st-card">
+            <h3>Imagen 2</h3>
+            <img src="images/img2.jpg" alt="Imagen de ejemplo 2">
+        </div>
+        <div class="st-card">
+            <h3>Imagen 3</h3>
+            <img src="images/img3.jpg" alt="Imagen de ejemplo 3">
+        </div>
+        <div class="st-card">
+            <h3>Video de Muestra Corto</h3>
+            <video controls>
+                <source src="videos/sample.mp4" type="video/mp4">
+                Tu navegador no soporta videos HTML5.
+            </video>
+        </div>
+    </div>
+</body>
+</html>
