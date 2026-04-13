@@ -18,7 +18,32 @@
 <body>
     <h1>¡Hola desde el Cluster de Apache!</h1>
     <p>Esta página web está siendo servida a través de <strong>Nginx actuando como Reverse Proxy con Balanceador de Carga y Caché</strong>.</p>
-    <p>Puedes inspeccionar las cabeceras HTTP de respuesta: <code>X-Backend-Server</code> para ver qué Apache respondió y <code>X-Proxy-Cache</code> para ver si hizo HIT o MISS en la caché.</p>
+    <p>Puedes inspeccionar las cabeceras HTTP de respuesta: <code>X-Backend-Server</code> y <code>X-Apache-Server</code>.</p>
+    
+    <div id="server-status" style="background:#0f3460; display:inline-block; padding:15px 25px; border-radius:8px; font-weight:bold; margin-top:10px; font-size:1.4rem; border: 2px solid #e94560;">
+        Verificando servidor activo...
+    </div>
+
+    <script>
+        // Hacemos una petición limpia saltando la caché para saber qué servidor responde en tiempo real
+        fetch(window.location.href.split('?')[0] + '?t=' + new Date().getTime(), { method: 'HEAD' })
+            .then(r => {
+                const apacheServer = r.headers.get('X-Apache-Server');
+                const serverIp = r.headers.get('X-Backend-Server');
+                
+                if (apacheServer) {
+                    document.getElementById('server-status').innerHTML = 
+                        `Atendido por: <span style="color:#e94560">${apacheServer}</span> <br><small style="font-size:0.9rem; font-weight:normal;">(IP Interna: ${serverIp || 'Desconocida'})</small>`;
+                } else {
+                    document.getElementById('server-status').innerHTML = 
+                        `Atendido por IP: <span style="color:#e94560">${serverIp || 'Desconocida'}</span>`;
+                }
+            })
+            .catch(e => {
+                document.getElementById('server-status').innerHTML = 'No se pudo verificar el servidor dinámicamente.';
+            });
+    </script>
+
 
     <div class="grid">
         <div class="st-card">

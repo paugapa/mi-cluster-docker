@@ -20,6 +20,7 @@ services:
       - ./html:/usr/local/apache2/htdocs
     expose:
       - "80"
+    command: /bin/sh -c 'sed -i "/LoadModule headers_module/s/^#//g" /usr/local/apache2/conf/httpd.conf && echo "Header set X-Apache-Server \"Apache 1\"" >> /usr/local/apache2/conf/httpd.conf && httpd-foreground'
 
   apache2:
     image: httpd:latest
@@ -28,6 +29,7 @@ services:
       - ./html:/usr/local/apache2/htdocs
     expose:
       - "80"
+    command: /bin/sh -c 'sed -i "/LoadModule headers_module/s/^#//g" /usr/local/apache2/conf/httpd.conf && echo "Header set X-Apache-Server \"Apache 2\"" >> /usr/local/apache2/conf/httpd.conf && httpd-foreground'
 
 volumes:
   nginx-cache:
