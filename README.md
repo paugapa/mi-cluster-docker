@@ -1,47 +1,43 @@
-# Cluster Docker: Nginx Balanceador + Apache
+# Pràctica: Proxies amb Nginx
 
-Este proyecto arranca una infraestructura web con Docker Compose que incluye:
-- **1 Contenedor Nginx** actuando como Proxy Inverso y Balanceador de Carga.
-- **2 Contenedores Apache** (`httpd`) sirviendo contenido estático en el backend.
-- **Caché de archivos** configurada en Nginx para mejorar el rendimiento.
-- **Volumen Compartido** para que ambos backends de Apache sirvan exactamente la misma página web.
+Aquest repositori conté la solució a la pràctica d'infraestructura de serveis web amb Docker Compose, implementant dos servidors Apache com a backend i un Nginx com a proxy invers amb balanceig de càrrega i memòria cau.
 
-## 🚀 Requisitos Previos
+## Fases de Desenvolupament
 
-- [Docker](https://www.docker.com/) instalado.
-- [Docker Compose](https://docs.docker.com/compose/) instalado.
+### Fase 1: Un sol node web
+Primer, es va crear l'estructura de la pàgina web estètica a `./html/index.html` amb una mica de disseny CSS i espais per a 3 imatges i 1 vídeo. Llavors es va afegir el primer contenidor de `httpd` (Apache) per servir aquest contingut.
 
-## 🛠️ Instalación y Uso
+### Fase 2: Segon node web
+Es va afegir un segon contenidor Apache (`apache_backend_2`) idèntic al primer per poder oferir alta disponibilitat. Per distingir-los, es va afegir un sub-comandament a Docker que inyecta dinàmicament la capçalera `X-Apache-Server` en el fitxer de configuració de cada Apache al moment de l'arrencada ("Apache 1" al primer contenidor i "Apache 2" al segon contenidor).
 
-1. **Clonar el repositorio**:
-   ```bash
-   git clone https://github.com/paugapa/mi-cluster-docker.git
-   cd mi-cluster-docker
-   ```
+### Fase 3: Volum compartit
+Per garantir que ambdós nodes web serveixen exactament el mateix contingut (i reduir la redundància de dades), els dos contenidors Apache es van configurar en el `docker-compose.yml` de manera que mapegen el mateix directori host `./html` cap a la ruta `/usr/local/apache2/htdocs` dels seus respectius contenidors d'Apache.
 
-2. **Añadir contenido multimedia (opcional)**:
-   Por defecto, el archivo `index.html` requiere de imágenes y de un vídeo para renderizarse correctamente. Puedes crearlas dentro de la ruta `./html`:
-   - Crea `html/images/` y añade `img1.jpg`, `img2.jpg` y `img3.jpg`.
-   - Crea `html/videos/` y añade `sample.mp4`.
+### Fase 4: Proxy invers amb balanceig
+S'ha creat el contenidor `nginx_proxy` amb el fitxer `nginx.conf` muntat com a volum. Hem configurat un bloc `upstream backend_apache` que inclou els dos contenidors Apache per defecte, l'algoritme que utilitza Nginx quan no s'especifica res és **Round Robin**. Les peticions entren a Nginx pel port 80 de la màquina host i ell les reparteix.
 
-3. **Arrancar el Clúster**:
-   Para levantar la infraestructura de forma desatendida, ejecuta:
-   ```bash
-   docker-compose up -d
-   ```
+### Fase 5: Memòria cau (Proxy Cache)
+A la configuració de l'Nginx (`nginx.conf`) hem establert `proxy_cache_path` per habilitar l'ús de la memòria cau i es va aplicar un `proxy_cache_valid` per a mantenir les respostes un temps. Això ajuda enormement al rendiment en fitxers estàtics com imatges i vídeos. Hem utilitzat la directiva automàtica d'Nginx `$upstream_cache_status` inyectada en la capçalera de proxy `X-Proxy-Cache` per visualitzar-ho fàcilment des del navegador i inspeccionar el HIT / MISS de les peticions en memòria.
 
-4. **Acceso al Servicio**:
-   Abre tu navegador web y visita: [http://localhost](http://localhost)
+## Problemes Trobats
+* **Dificultat per distingir els contenidors**: En tenir un volum estricte compartit pel mateix document HTML, no es podien tenir arxius diferents i per tant no podiem posar noms diferents als index. La solució més eficient ha estat l'ús de `mod_headers` per injerir al vol el nom del servidor i recuperar-ho des del costat del client amb Javascript.
 
-5. **Verificación del Balanceador de Carga y la Caché**:
-   - Inspecciona las herramientas de desarrollador en tu navegador (`F12` -> pestaña Red/Network y revisa las peticiones).
-   - Verás dos cabeceras personalizadas interesantes inyectadas por Nginx:
-     - `X-Backend-Server`: Indica la IP del contenedor Apache que logró resolver la petición. Si fuerzas la recarga (Ctrl+F5) notarás cómo alterna entre los dos Apaches.
-     - `X-Proxy-Cache`: Te mostrará un `HIT` si el archivo fue servido directamente desde la memoria de Nginx, o un `MISS` si lo tuvo que consultar a uno de los Apaches.
+---
 
-## 🛑 Detener el clúster
+## Evidències de Funcionament
 
-Para detener la infraestructura y la red de contenedores:
-```bash
-docker-compose down
-```
+> [!IMPORTANT] 
+> **(PROFESSOR)** A continuació es mostren les captures de pantalla que demostren el funcionament requerit.
+
+### 1. Web funcionant amb balanceig actiu
+*(Aquí afegeix una captura de la pàgina on es vegi l'etiqueta dinàmica mostrant "Apache 1" o "Apache 2")*
+![Web i balanceig](placeholder-web.png)
+
+### 2. Capçaleres HTTP del balancejador i Servidor Backend
+*(Afegeix una captura de la pestanya "Xarxa" del navegador on es vegin les capçaleres de resposta `X-Apache-Server` o `X-Backend-Server` demostrant l'origen de la resposta)*
+![Capçaleres del Backend](placeholder-headers.png)
+
+### 3. Memòria Cau Nginx (HIT / MISS)
+*(Captura de la mateixa pestanya on es demostri que les fotos / recursos i la web retornen la capçalera `X-Proxy-Cache: HIT` un cop ja s'han sol·licitat previament)*
+![Memòria cau - HIT](placeholder-cache-hit.png)
+
