@@ -18,33 +18,76 @@
 <body>
     <h1>¡Hola desde el Cluster de Apache!</h1>
     <p>Esta página web está siendo servida a través de <strong>Nginx actuando como Reverse Proxy con Balanceador de Carga y Caché</strong>.</p>
-    <p>Puedes inspeccionar las cabeceras HTTP de respuesta: <code>X-Backend-Server</code> y <code>X-Apache-Server</code>.</p>
-    
-    <div id="server-status" style="background:#0f3460; display:inline-block; padding:15px 25px; border-radius:8px; font-weight:bold; margin-top:10px; font-size:1.4rem; border: 2px solid #e94560;">
-        Verificando servidor activo...
+    <div class="st-card" style="max-width: 600px; margin: 20px auto; border-color: #e94560;">
+        <h3>Monitor del Balanceador (Nginx)</h3>
+        <div id="server-status" style="background:#0f3460; display:block; padding:15px; border-radius:8px; font-weight:bold; font-size:1.4rem; border: 2px solid #e94560; transition: all 0.5s ease;">
+            Iniciando monitor...
+        </div>
+        
+        <div style="margin-top: 15px;">
+            <button onclick="checkServer()" style="background:#e94560; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; font-weight:bold;">Refrescar conexión</button>
+            <button onclick="runStressTest()" id="btn-test" style="background:#0f3460; color:white; border:1px solid #e94560; padding:10px 20px; border-radius:5px; cursor:pointer; margin-left:10px;">Test de 10 peticiones (Round Robin)</button>
+        </div>
+
+        <div style="margin-top: 20px; text-align: left; background: #0a0a1a; padding: 10px; border-radius: 5px;">
+            <strong style="color: #e94560; font-size: 0.9rem;">Historial Reciente (Saltando Caché):</strong>
+            <ul id="history" style="list-style: none; padding: 0; margin-top: 10px; font-family: monospace; font-size: 0.85rem;">
+                <!-- Aquí aparecerá el historial -->
+            </ul>
+        </div>
     </div>
 
     <script>
-        // Hacemos una petición limpia saltando la caché para saber qué servidor responde en tiempo real
-        fetch(window.location.href.split('?')[0] + '?t=' + new Date().getTime(), { method: 'HEAD' })
-            .then(r => {
-                const apacheServer = r.headers.get('X-Apache-Server');
-                const serverIp = r.headers.get('X-Backend-Server');
-                
-                if (apacheServer) {
-                    document.getElementById('server-status').innerHTML = 
-                        `Atendido por: <span style="color:#e94560">${apacheServer}</span> <br><small style="font-size:0.9rem; font-weight:normal;">(IP Interna: ${serverIp || 'Desconocida'})</small>`;
-                } else {
-                    document.getElementById('server-status').innerHTML = 
-                        `Atendido por IP: <span style="color:#e94560">${serverIp || 'Desconocida'}</span>`;
-                }
-            })
-            .catch(e => {
-                document.getElementById('server-status').innerHTML = 'No se pudo verificar el servidor dinámicamente.';
-            });
+        const statusBox = document.getElementById('server-status');
+        const historyList = document.getElementById('history');
+        const historyArr = [];
+
+        function updateUI(apache, ip, fromCache) {
+            const isApache1 = apache.includes('1');
+            const color = isApache1 ? '#3498db' : '#2ecc71';
+            
+            statusBox.style.borderColor = color;
+            statusBox.innerHTML = `Atendido por: <span style="color:${color}">${apache}</span><br>
+                                   <small style="font-size:0.8rem; font-weight:normal;">IP: ${ip} | Cache: ${fromCache}</small>`;
+            
+            // Añadir al historial
+            const time = new Date().toLocaleTimeString();
+            const logItem = `<li style="border-bottom: 1px solid #16213e; padding: 3px 0;">
+                                [${time}] <span style="color:${color}">${apache}</span> » ${ip}
+                             </li>`;
+            historyArr.unshift(logItem);
+            if(historyArr.length > 5) historyArr.pop();
+            historyList.innerHTML = historyArr.join('');
+        }
+
+        async function checkServer() {
+            try {
+                // Forzamos bypass de cache con ?t=
+                const res = await fetch('/?t=' + Date.now(), { method: 'HEAD' });
+                const apache = res.headers.get('X-Apache-Server') || 'Desconocido';
+                const ip = res.headers.get('X-Backend-Server') || 'N/A';
+                const cache = res.headers.get('X-Proxy-Cache') || 'MISS';
+                updateUI(apache, ip, cache);
+            } catch (e) {
+                statusBox.innerHTML = 'Error conectando con el balanceador';
+            }
+        }
+
+        async function runStressTest() {
+            const btn = document.getElementById('btn-test');
+            btn.disabled = true;
+            btn.innerText = 'Ejecutando...';
+            for(let i=0; i<10; i++) {
+                await checkServer();
+                await new Promise(r => setTimeout(r, 300)); // Pequeña pausa para ver el efecto
+            }
+            btn.disabled = false;
+            btn.innerText = 'Test de 10 peticiones (Round Robin)';
+        }
+
+        // Ejecutar al cargar
+        checkServer();
     </script>
-
-
     <div class="grid">
         <div class="st-card">
             <h3>Imagen 1</h3>
