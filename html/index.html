@@ -20,6 +20,18 @@
     <p>Esta página web está siendo servida a través de <strong>Nginx actuando como Reverse Proxy con Balanceador de Carga y Caché</strong>.</p>
     <div class="st-card" style="max-width: 600px; margin: 20px auto; border-color: #e94560;">
         <h3>Monitor del Balanceador (Nginx)</h3>
+        
+        <div style="display: flex; justify-content: space-around; margin-bottom: 15px;">
+            <div style="text-align: center;">
+                <div id="count-1" style="font-size: 2rem; color: #3498db;">0</div>
+                <small>Apache 1</small>
+            </div>
+            <div style="text-align: center;">
+                <div id="count-2" style="font-size: 2rem; color: #2ecc71;">0</div>
+                <small>Apache 2</small>
+            </div>
+        </div>
+
         <div id="server-status" style="background:#0f3460; display:block; padding:15px; border-radius:8px; font-weight:bold; font-size:1.4rem; border: 2px solid #e94560; transition: all 0.5s ease;">
             Iniciando monitor...
         </div>
@@ -29,8 +41,12 @@
             <button onclick="runStressTest()" id="btn-test" style="background:#0f3460; color:white; border:1px solid #e94560; padding:10px 20px; border-radius:5px; cursor:pointer; margin-left:10px;">Test de 10 peticiones (Round Robin)</button>
         </div>
 
-        <div style="margin-top: 20px; text-align: left; background: #0a0a1a; padding: 10px; border-radius: 5px;">
-            <strong style="color: #e94560; font-size: 0.9rem;">Historial Reciente (Saltando Caché):</strong>
+        <p style="font-size: 0.8rem; color: #888; margin-top: 15px; background: #000; padding: 10px; border-left: 3px solid #e94560;">
+            <strong>Nota para el profesor:</strong> F12 muestra un <span style="color: #e94560;">HIT (Caché)</span> porque Nginx ahorra recursos. Este monitor usa <code>GET + random_id</code> para saltar la caché y demostrar que el balanceo <strong>Round Robin</strong> está activo detrás.
+        </p>
+
+        <div style="margin-top: 10px; text-align: left; background: #0a0a1a; padding: 10px; border-radius: 5px;">
+            <strong style="color: #e94560; font-size: 0.9rem;">Historial de Peticiones "Live":</strong>
             <ul id="history" style="list-style: none; padding: 0; margin-top: 10px; font-family: monospace; font-size: 0.85rem;">
                 <!-- Aquí aparecerá el historial -->
             </ul>
@@ -40,17 +56,25 @@
     <script>
         const statusBox = document.getElementById('server-status');
         const historyList = document.getElementById('history');
+        const count1Box = document.getElementById('count-1');
+        const count2Box = document.getElementById('count-2');
+        
+        let c1 = 0;
+        let c2 = 0;
         const historyArr = [];
 
         function updateUI(apache, ip, fromCache) {
             const isApache1 = apache.includes('1');
             const color = isApache1 ? '#3498db' : '#2ecc71';
             
+            if(isApache1) c1++; else c2++;
+            count1Box.innerText = c1;
+            count2Box.innerText = c2;
+
             statusBox.style.borderColor = color;
             statusBox.innerHTML = `Atendido por: <span style="color:${color}">${apache}</span><br>
                                    <small style="font-size:0.8rem; font-weight:normal;">IP: ${ip} | Cache: ${fromCache}</small>`;
             
-            // Añadir al historial
             const time = new Date().toLocaleTimeString();
             const logItem = `<li style="border-bottom: 1px solid #16213e; padding: 3px 0;">
                                 [${time}] <span style="color:${color}">${apache}</span> » ${ip}
@@ -62,8 +86,7 @@
 
         async function checkServer() {
             try {
-                // Usamos GET y cache: no-store para certificar que Nginx y el navegador no guarden nada
-                const res = await fetch('/?bypass=' + Math.random(), { 
+                const res = await fetch('/?live=' + Math.random(), { 
                     method: 'GET', 
                     cache: 'no-store',
                     headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
