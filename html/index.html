@@ -62,8 +62,13 @@
 
         async function checkServer() {
             try {
-                // Forzamos bypass de cache con ?t=
-                const res = await fetch('/?t=' + Date.now(), { method: 'HEAD' });
+                // Usamos GET y cache: no-store para certificar que Nginx y el navegador no guarden nada
+                const res = await fetch('/?bypass=' + Math.random(), { 
+                    method: 'GET', 
+                    cache: 'no-store',
+                    headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+                });
+                
                 const apache = res.headers.get('X-Apache-Server') || 'Desconocido';
                 const ip = res.headers.get('X-Backend-Server') || 'N/A';
                 const cache = res.headers.get('X-Proxy-Cache') || 'MISS';
